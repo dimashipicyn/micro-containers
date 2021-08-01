@@ -1,4 +1,5 @@
 #include <stdio.h>
+#define template
 #define T int
 #include "vector.h"
 
@@ -16,10 +17,10 @@ int main()
 		printf("vec[%d] = %d\n", i, m_at(vec, i));
 	
 	Iterator(int) iter = m_iterator(vec), *iterPtr = &iter;
+	foo(vec);
 	while (m_has_next(iterPtr))
 	{
 		int num = m_next(iterPtr);
 		printf("test iterator %d\n", num);
 	}
-	foo(vec);
 }

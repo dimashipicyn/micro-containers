@@ -7,12 +7,14 @@
 #include <assert.h>
 #include "templates.h"
 
-//Type of vector
+// Type of vector
 #define Vector(type) TEMPLATE(Vector, type)
+// Type of iterator
 #define Iterator(type) TEMPLATE(Iterator, type)
 
-// Constructor and destructor
+// Constructor
 #define new(type) TEMPLATE(new, type)()
+// Destructor
 void	delete(void *obj);
 
 /**
@@ -25,8 +27,18 @@ void	delete(void *obj);
  * m_clear(object);
  * m_at(object, position);
  */
+
+/**
+ * m_insert Вставка елемента в позицию в массиве
+ */
 #define m_insert(obj, elem, pos) obj->method->insert(obj, elem, pos)
+/**
+ * m_size Возвращает размер массива
+ */
 #define m_size(obj) obj->method->size(obj)
+/**
+ * Вставка елемента в конец массива
+ */
 #define m_push_back(obj, elem) obj->method->push_back(obj, elem)
 #define m_push_front(obj, elem) obj->method->push_front(obj, elem)
 #define m_erase(obj, pos) obj->method->erase(obj, pos)
@@ -75,12 +87,12 @@ typedef struct TEMPLATE(Vector, T)
 	size_t		size;
 	size_t		capacity;
 }				TEMPLATE(Vector, T);
+
 /**************************************************************************/
 /**************************************************************************/
-
-
 /***************************************************************************/
 
+#ifdef template
 /**
  * Шаблоны прототипов встроенных функций
  */
@@ -294,7 +306,7 @@ TEMPLATE(Iterator, T)	TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec)
 	return (t);
 }
 
-# ifndef Destructor
+#  ifndef Destructor
 # define Destructor
 /**
  * Деструктор
@@ -311,7 +323,9 @@ void	delete(void *obj)
 		m->release(obj);
 }
 
-#endif
+#  endif
+
+# endif
 
 #undef T
 #endif
