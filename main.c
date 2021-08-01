@@ -21,4 +21,5 @@ int main()
 		int num = m_next(iterPtr);
 		printf("test iterator %d\n", num);
 	}
+	foo(vec);
 }

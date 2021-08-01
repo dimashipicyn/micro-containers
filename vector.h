@@ -36,8 +36,6 @@ void	delete(void *obj);
 #define m_has_next(iterator) iterator->has_next(iterator)
 #define m_next(iterator) iterator->next(iterator)
 
-
-
 #endif
 
 /**
@@ -87,17 +85,17 @@ typedef struct TEMPLATE(Vector, T)
  * Шаблоны прототипов встроенных функций
  */
 
-bool    TEMPLATE(erase, T)(struct TEMPLATE(Vector, T) *this, size_t position);
-int		TEMPLATE(size, T)(struct TEMPLATE(Vector, T) *this);
-void	TEMPLATE(release, T)(void *obj);
-bool    TEMPLATE(push_front, T)(struct TEMPLATE(Vector, T) *this, T);
-bool    TEMPLATE(push_back, T)(struct TEMPLATE(Vector, T) *this, T);
-bool    TEMPLATE(insert, T)(struct TEMPLATE(Vector, T) *this, T, size_t position);
-T		TEMPLATE(at, T)(struct TEMPLATE(Vector, T) *this, size_t elem);
-void	TEMPLATE(clear, T)(struct TEMPLATE(Vector, T) *this);
-bool	TEMPLATE(load, T)(struct TEMPLATE(Vector, T) *this, void *mem, size_t n);
-bool    TEMPLATE(add_mem, T)(struct TEMPLATE(Vector, T) *this, void *mem, size_t size);
-struct TEMPLATE(Iterator, T)	TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec);
+static bool		TEMPLATE(erase, T)(struct TEMPLATE(Vector, T) *this, size_t position);
+static int		TEMPLATE(size, T)(struct TEMPLATE(Vector, T) *this);
+static void		TEMPLATE(release, T)(void *obj);
+static bool		TEMPLATE(push_front, T)(struct TEMPLATE(Vector, T) *this, T);
+static bool		TEMPLATE(push_back, T)(struct TEMPLATE(Vector, T) *this, T);
+static bool		TEMPLATE(insert, T)(struct TEMPLATE(Vector, T) *this, T, size_t position);
+static T		TEMPLATE(at, T)(struct TEMPLATE(Vector, T) *this, size_t elem);
+static void		TEMPLATE(clear, T)(struct TEMPLATE(Vector, T) *this);
+static bool		TEMPLATE(load, T)(struct TEMPLATE(Vector, T) *this, void *mem, size_t n);
+static bool		TEMPLATE(add_mem, T)(struct TEMPLATE(Vector, T) *this, void *mem, size_t size);
+static struct TEMPLATE(Iterator, T)		TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec);
 
 
 static TEMPLATE(t_methods, T)	TEMPLATE(g_methods, T) =
@@ -141,12 +139,10 @@ TEMPLATE(Vector, T)	*TEMPLATE(new, T)()
 	return (vec);
 }
 
-
-
 /**
  * 
  */
-bool	TEMPLATE(add_mem, T)(TEMPLATE(Vector, T) *this, void *mem, size_t size)
+static bool	TEMPLATE(add_mem, T)(TEMPLATE(Vector, T) *this, void *mem, size_t size)
 {
 	void	*nmem;
 
@@ -162,19 +158,19 @@ bool	TEMPLATE(add_mem, T)(TEMPLATE(Vector, T) *this, void *mem, size_t size)
 	return (true);
 }
 
-T	TEMPLATE(at, T)(TEMPLATE(Vector, T) *this, size_t elem)
+static T	TEMPLATE(at, T)(TEMPLATE(Vector, T) *this, size_t elem)
 {
 	assert(elem < this->size);
 	return (this->mem[elem]);
 }
 
-void	TEMPLATE(clear, T)(TEMPLATE(Vector, T) *vector)
+static void	TEMPLATE(clear, T)(TEMPLATE(Vector, T) *vector)
 {
 	bzero(vector->mem, vector->capacity * sizeof(T));
 	vector->size = 0;
 }
 
-bool	TEMPLATE(erase, T)(TEMPLATE(Vector, T) *this, size_t position)
+static bool	TEMPLATE(erase, T)(TEMPLATE(Vector, T) *this, size_t position)
 {
 	if (position < this->size)
 	{
@@ -188,7 +184,7 @@ bool	TEMPLATE(erase, T)(TEMPLATE(Vector, T) *this, size_t position)
 	return (false);
 }
 
-bool	TEMPLATE(insert, T)(TEMPLATE(Vector, T) *this, T elem, size_t position)
+static bool	TEMPLATE(insert, T)(TEMPLATE(Vector, T) *this, T elem, size_t position)
 {
 	T	*tmp;
 
@@ -199,7 +195,6 @@ bool	TEMPLATE(insert, T)(TEMPLATE(Vector, T) *this, T elem, size_t position)
 		tmp = realloc(this->mem, this->capacity * sizeof(T) * 2);
 		if (!tmp)
 			return (false);
-		//free(this->mem);
 		this->mem = tmp;
 		this->capacity = this->capacity * 2;
 	}
@@ -211,7 +206,7 @@ bool	TEMPLATE(insert, T)(TEMPLATE(Vector, T) *this, T elem, size_t position)
 	return (true);
 }
 
-bool	TEMPLATE(load, T)(TEMPLATE(Vector, T) *this, void *mem, size_t n)
+static bool	TEMPLATE(load, T)(TEMPLATE(Vector, T) *this, void *mem, size_t n)
 {
 	void	*m;
 
@@ -226,17 +221,17 @@ bool	TEMPLATE(load, T)(TEMPLATE(Vector, T) *this, void *mem, size_t n)
 	return (true);
 }
 
-bool	TEMPLATE(push_back, T)(TEMPLATE(Vector, T) *vector, T elem)
+static bool	TEMPLATE(push_back, T)(TEMPLATE(Vector, T) *vector, T elem)
 {
 	return (vector->method->insert(vector, elem, vector->size));
 }
 
-bool	TEMPLATE(push_front, T)(TEMPLATE(Vector, T) *vector, T elem)
+static bool	TEMPLATE(push_front, T)(TEMPLATE(Vector, T) *vector, T elem)
 {
 	return (vector->method->insert(vector, elem, 0));
 }
 
-void	TEMPLATE(release, T)(void *obj)
+static void	TEMPLATE(release, T)(void *obj)
 {
 	TEMPLATE(Vector, T) *t;
 	
@@ -245,7 +240,7 @@ void	TEMPLATE(release, T)(void *obj)
 	free(t);
 }
 
-int	TEMPLATE(size, T)(TEMPLATE(Vector, T) *vector)
+static int	TEMPLATE(size, T)(TEMPLATE(Vector, T) *vector)
 {
 	return (vector->size);
 }
@@ -267,18 +262,27 @@ typedef struct	TEMPLATE(Iterator, T)
 	T							(*next)(struct TEMPLATE(Iterator, T) *);
 }	TEMPLATE(Iterator, T);
 
-bool	TEMPLATE(has_next, T)(TEMPLATE(Iterator, T) *t)
+/**
+ * has_next checked next element
+ * 
+ */
+static bool	TEMPLATE(has_next, T)(TEMPLATE(Iterator, T) *t)
 {
 	if (t->iter < t->container->size)
 		return (true);
 	return (false);
 }
-
-T	TEMPLATE(next, T)(TEMPLATE(Iterator, T) *t)
+/**
+ * next return value and increment iterator
+ */
+static T	TEMPLATE(next, T)(TEMPLATE(Iterator, T) *t)
 {
 	return (t->container->method->at(t->container, t->iter++));
 }
 
+/**
+ * Constructor iterator in stack
+ */
 TEMPLATE(Iterator, T)	TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec)
 {
 	TEMPLATE(Iterator, T) t = (TEMPLATE(Iterator, T)){
