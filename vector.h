@@ -5,7 +5,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "templates.h"
+
+#define CAT(X,Y) X##_##Y
+#define TEMPLATE(X,Y) CAT(X,Y)
 
 // Type of vector
 #define Vector(type) TEMPLATE(Vector, type)
@@ -13,7 +15,7 @@
 #define Iterator(type) TEMPLATE(Iterator, type)
 
 // Constructor
-#define new(type) TEMPLATE(new, type)()
+#define new(cont, type) TEMPLATE(new, TEMPLATE(cont, type))()
 // Destructor
 void	delete(void *obj);
 
@@ -47,6 +49,29 @@ void	delete(void *obj);
 #define m_iterator(obj) obj->method->iter(obj)
 #define m_has_next(iterator) iterator->has_next(iterator)
 #define m_next(iterator) iterator->next(iterator)
+#define m_remove(iterator) iterator->remove(iterator)
+#define m_add(iterator, elem) iterator->add(iterator, elem)
+
+typedef struct Class
+{
+	void	(*release)(void *);
+}	Class;
+
+/**
+ * Деструктор
+ */
+
+void	delete(void *obj)
+{
+	Class	*m;
+
+	if (!obj)
+		return ;
+	m = *(Class **)obj;
+	if (m && m->release)
+		m->release(obj);
+	free(obj);
+}
 
 #endif
 
@@ -67,25 +92,25 @@ struct	TEMPLATE(Iterator, T);
 
 typedef struct TEMPLATE(s_methods, T)
 {
-	bool	(*insert)(struct TEMPLATE(Vector, T) *, T, size_t);
+	void	(*release)(void *);
+	bool	(*insert)(struct TEMPLATE(Vector, T) *, T, int);
 	int		(*size)(struct TEMPLATE(Vector, T) *);
 	bool	(*push_back)(struct TEMPLATE(Vector, T) *, T);
 	bool	(*push_front)(struct TEMPLATE(Vector, T) *, T);
-	bool	(*erase)(struct TEMPLATE(Vector, T) *, size_t);
+	bool	(*erase)(struct TEMPLATE(Vector, T) *, int);
 	void	(*clear)(struct TEMPLATE(Vector, T) *);
-	T		(*at)(struct TEMPLATE(Vector, T) *, size_t);
-	void	(*release)(void *);
+	T		(*at)(struct TEMPLATE(Vector, T) *, int);
 	bool	(*load)(struct TEMPLATE(Vector, T) *, void *, size_t);
-	bool	(*add_mem)(struct TEMPLATE(Vector, T) *, void *, size_t);
-	struct TEMPLATE(Iterator, T)	(*iter)(struct TEMPLATE(Vector, T) *);
+	bool	(*add_mem)(struct TEMPLATE(Vector, T) *, void *, int);
+	struct TEMPLATE(Iterator, T)	*(*iter)(struct TEMPLATE(Vector, T) *);
 }				TEMPLATE(t_methods, T);
 
 typedef struct TEMPLATE(Vector, T)
 {
 	TEMPLATE(t_methods, T)	*method;
 	T			*mem;
-	size_t		size;
-	size_t		capacity;
+	int			size;
+	int			capacity;
 }				TEMPLATE(Vector, T);
 
 /**************************************************************************/
@@ -97,21 +122,22 @@ typedef struct TEMPLATE(Vector, T)
  * Шаблоны прототипов встроенных функций
  */
 
-static bool		TEMPLATE(erase, T)(struct TEMPLATE(Vector, T) *this, size_t position);
+static bool		TEMPLATE(erase, T)(struct TEMPLATE(Vector, T) *this, int position);
 static int		TEMPLATE(size, T)(struct TEMPLATE(Vector, T) *this);
 static void		TEMPLATE(release, T)(void *obj);
 static bool		TEMPLATE(push_front, T)(struct TEMPLATE(Vector, T) *this, T);
 static bool		TEMPLATE(push_back, T)(struct TEMPLATE(Vector, T) *this, T);
-static bool		TEMPLATE(insert, T)(struct TEMPLATE(Vector, T) *this, T, size_t position);
-static T		TEMPLATE(at, T)(struct TEMPLATE(Vector, T) *this, size_t elem);
+static bool		TEMPLATE(insert, T)(struct TEMPLATE(Vector, T) *this, T, int position);
+static T		TEMPLATE(at, T)(struct TEMPLATE(Vector, T) *this, int elem);
 static void		TEMPLATE(clear, T)(struct TEMPLATE(Vector, T) *this);
 static bool		TEMPLATE(load, T)(struct TEMPLATE(Vector, T) *this, void *mem, size_t n);
-static bool		TEMPLATE(add_mem, T)(struct TEMPLATE(Vector, T) *this, void *mem, size_t size);
-static struct TEMPLATE(Iterator, T)		TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec);
+static bool		TEMPLATE(add_mem, T)(struct TEMPLATE(Vector, T) *this, void *mem, int size);
+static struct TEMPLATE(Iterator, T)		*TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec);
 
 
 static TEMPLATE(t_methods, T)	TEMPLATE(g_methods, T) =
 {
+	.release = TEMPLATE(release, T),
 	.insert = TEMPLATE(insert, T),
 	.size = TEMPLATE(size, T),
 	.push_back = TEMPLATE(push_back, T),
@@ -119,7 +145,6 @@ static TEMPLATE(t_methods, T)	TEMPLATE(g_methods, T) =
 	.erase = TEMPLATE(erase, T),
 	.clear = TEMPLATE(clear, T),
 	.at = TEMPLATE(at, T),
-	.release = TEMPLATE(release, T),
 	.load = TEMPLATE(load, T),
 	.add_mem = TEMPLATE(add_mem, T),
 	.iter = TEMPLATE(newIterator, T)
@@ -132,7 +157,7 @@ static TEMPLATE(t_methods, T)	TEMPLATE(g_methods, T) =
  * Конструктор
  */
 
-TEMPLATE(Vector, T)	*TEMPLATE(new, T)()
+TEMPLATE(Vector, T)	*TEMPLATE(new_Vector, T)()
 {
 	TEMPLATE(Vector, T)	*vec;
 	T	*mem;
@@ -154,7 +179,7 @@ TEMPLATE(Vector, T)	*TEMPLATE(new, T)()
 /**
  * 
  */
-static bool	TEMPLATE(add_mem, T)(TEMPLATE(Vector, T) *this, void *mem, size_t size)
+static bool	TEMPLATE(add_mem, T)(TEMPLATE(Vector, T) *this, void *mem, int size)
 {
 	void	*nmem;
 
@@ -170,7 +195,7 @@ static bool	TEMPLATE(add_mem, T)(TEMPLATE(Vector, T) *this, void *mem, size_t si
 	return (true);
 }
 
-static T	TEMPLATE(at, T)(TEMPLATE(Vector, T) *this, size_t elem)
+static T	TEMPLATE(at, T)(TEMPLATE(Vector, T) *this, int elem)
 {
 	assert(elem < this->size);
 	return (this->mem[elem]);
@@ -182,21 +207,21 @@ static void	TEMPLATE(clear, T)(TEMPLATE(Vector, T) *vector)
 	vector->size = 0;
 }
 
-static bool	TEMPLATE(erase, T)(TEMPLATE(Vector, T) *this, size_t position)
+static bool	TEMPLATE(erase, T)(TEMPLATE(Vector, T) *this, int position)
 {
 	if (position < this->size)
 	{
-		memcpy(this->mem + position * sizeof(T),
-			this->mem + (position + 1) * sizeof(T),
-			(this->size - position + 1) * sizeof(T));
+		if (position < this->size - 1)
+			memmove(this->mem + position,
+				this->mem + (position + 1),
+				(this->size - position - 1) * sizeof(T));
 		this->size -= 1;
-		bzero(this->mem + (this->size * sizeof(T)), sizeof(T));
 		return (true);
 	}
 	return (false);
 }
 
-static bool	TEMPLATE(insert, T)(TEMPLATE(Vector, T) *this, T elem, size_t position)
+static bool	TEMPLATE(insert, T)(TEMPLATE(Vector, T) *this, T elem, int position)
 {
 	T	*tmp;
 
@@ -210,8 +235,8 @@ static bool	TEMPLATE(insert, T)(TEMPLATE(Vector, T) *this, T elem, size_t positi
 		this->mem = tmp;
 		this->capacity = this->capacity * 2;
 	}
-	memmove(this->mem + ((position + 1) * sizeof(T)),
-		this->mem + (position * sizeof(T)),
+	memmove(this->mem + position + 1,
+		this->mem + position,
 		(this->size - position) * sizeof(T));
 	this->mem[position] = elem;
 	this->size += 1;
@@ -249,7 +274,6 @@ static void	TEMPLATE(release, T)(void *obj)
 	
 	t = (TEMPLATE(Vector, T) *)obj;
 	free(t->mem);
-	free(t);
 }
 
 static int	TEMPLATE(size, T)(TEMPLATE(Vector, T) *vector)
@@ -268,10 +292,13 @@ static int	TEMPLATE(size, T)(TEMPLATE(Vector, T) *vector)
 
 typedef struct	TEMPLATE(Iterator, T)
 {
-	size_t						iter;
+	Class						*class;
 	struct TEMPLATE(Vector, T)	*container;
 	bool						(*has_next)(struct TEMPLATE(Iterator, T) *);
 	T							(*next)(struct TEMPLATE(Iterator, T) *);
+	void						(*remove)(struct TEMPLATE(Iterator, T) *);
+	void						(*add)(struct TEMPLATE(Iterator, T) *, T);
+	int							iter;
 }	TEMPLATE(Iterator, T);
 
 /**
@@ -280,7 +307,7 @@ typedef struct	TEMPLATE(Iterator, T)
  */
 static bool	TEMPLATE(has_next, T)(TEMPLATE(Iterator, T) *t)
 {
-	if (t->iter < t->container->size)
+	if (t->iter < t->container->size - 1)
 		return (true);
 	return (false);
 }
@@ -289,41 +316,43 @@ static bool	TEMPLATE(has_next, T)(TEMPLATE(Iterator, T) *t)
  */
 static T	TEMPLATE(next, T)(TEMPLATE(Iterator, T) *t)
 {
-	return (t->container->method->at(t->container, t->iter++));
+	t->iter += 1;
+	return (t->container->method->at(t->container, t->iter));
+}
+
+void		TEMPLATE(removeIterator, T)(TEMPLATE(Iterator, T) *t)
+{
+	t->container->method->erase(t->container, t->iter);
+	t->iter -= 1;
+}
+
+void		TEMPLATE(addIterator, T)(TEMPLATE(Iterator, T) *t, T elem)
+{
+	t->container->method->insert(t->container, elem, t->iter);
+	t->iter += 1;
 }
 
 /**
  * Constructor iterator in stack
  */
-TEMPLATE(Iterator, T)	TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec)
+TEMPLATE(Iterator, T)	*TEMPLATE(newIterator, T)(TEMPLATE(Vector, T) *vec)
 {
-	TEMPLATE(Iterator, T) t = (TEMPLATE(Iterator, T)){
+	TEMPLATE(Iterator, T) *t = calloc(1, sizeof(TEMPLATE(Iterator, T)));
+	assert(t);
+	*t = (TEMPLATE(Iterator, T)){
 		.container = vec,
 		.has_next = TEMPLATE(has_next, T),
 		.next = TEMPLATE(next, T),
-		.iter = 0
+		.remove = TEMPLATE(removeIterator, T),
+		.add = TEMPLATE(addIterator, T),
+		.iter = -1,
+		.class = 0
 	};
 	return (t);
 }
 
-#  ifndef Destructor
-# define Destructor
-/**
- * Деструктор
- */
 
-void	delete(void *obj)
-{
-	TEMPLATE(t_methods, T)	*m;
 
-	if (!obj)
-		return ;
-	m = *(TEMPLATE(t_methods, T) **)obj;
-	if (m && m->release)
-		m->release(obj);
-}
-
-#  endif
 
 # endif
 
