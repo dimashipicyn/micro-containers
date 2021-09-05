@@ -15,7 +15,8 @@
 #define Iterator(type) TEMPLATE(Iterator, type)
 
 // Constructor
-#define new(cont, type) TEMPLATE(new, TEMPLATE(cont, type))()
+#define new(cont, type) TEMPLATE(init, TEMPLATE(cont, type))(calloc(1, sizeof(TEMPLATE(cont, type))))
+#define $(cont, type) TEMPLATE(init, TEMPLATE(cont, type))((char[sizeof(TEMPLATE(cont, type))]){})
 // Destructor
 void	delete(void *obj);
 
@@ -157,14 +158,15 @@ static TEMPLATE(t_methods, T)	TEMPLATE(g_methods, T) =
  * Конструктор
  */
 
-TEMPLATE(Vector, T)	*TEMPLATE(new_Vector, T)()
+TEMPLATE(Vector, T)	*TEMPLATE(init_Vector, T)(TEMPLATE(Vector, T) *vec)
 {
-	TEMPLATE(Vector, T)	*vec;
+//	TEMPLATE(Vector, T)	*vec;
 	T	*mem;
 
-	vec = (TEMPLATE(Vector, T) *)calloc(1, sizeof(TEMPLATE(Vector, T)));
+//	vec = (TEMPLATE(Vector, T) *)calloc(1, sizeof(TEMPLATE(Vector, T)));
 	mem = calloc(1, sizeof(T));
-	if (!vec || !mem)
+//	if (!vec || !mem)
+	if (!mem)
 	{
 		free(vec);
 		free(mem);
