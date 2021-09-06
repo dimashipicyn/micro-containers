@@ -14,10 +14,13 @@
 // Type of iterator
 #define Iterator(type) TEMPLATE(Iterator, type)
 
-// Constructor
-#define new(cont, type, ...) TEMPLATE(init, TEMPLATE(cont, type))(calloc(1, sizeof(TEMPLATE(cont, type))), ## __VA_ARGS__)
-#define $(cont, type, ...) TEMPLATE(init, TEMPLATE(cont, type))((void *)(char[sizeof(TEMPLATE(cont, type))]){}, ##  __VA_ARGS__)
-// Destructor
+// alloc
+#define new(cont, type, ...) \
+			TEMPLATE(init, TEMPLATE(cont, type))(calloc(1, sizeof(TEMPLATE(cont, type))), ## __VA_ARGS__)
+
+#define $(cont, type, ...) \
+			TEMPLATE(init, TEMPLATE(cont, type))((void *)(char[sizeof(TEMPLATE(cont, type))]){}, ##  __VA_ARGS__)
+// dealloc
 void	delete(void *obj);
 
 /**
@@ -47,6 +50,7 @@ void	delete(void *obj);
 #define m_erase(obj, pos) obj->method->erase(obj, pos)
 #define m_clear(obj) obj->method->clear(obj)
 #define m_at(obj, pos) obj->method->at(obj, pos)
+
 #define m_iterator(obj) obj->method->iter(obj)
 #define m_has_next(iterator) iterator->has_next(iterator)
 #define m_next(iterator) iterator->next(iterator)
@@ -59,9 +63,8 @@ typedef struct Class
 }	Class;
 
 /**
- * Деструктор
+ * dealloc
  */
-
 void	delete(void *obj)
 {
 	Class	*m;
