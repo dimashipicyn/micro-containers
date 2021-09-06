@@ -1,5 +1,5 @@
 # micro-containers
-```
+```c
 // Example
 #include <stdio.h>
 
