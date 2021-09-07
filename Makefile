@@ -9,9 +9,13 @@ OBJ = $(SRCS:.c=.o)
 DEPENDS = ${SRCS:.c=.d}
 NAME = libminiooc.a
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re git test
 
 all: $(SRCS) $(NAME)
+
+test: all
+	$(CC) test.c -I$(INCLUDE) $(NAME)
+	./a.out
 
 $(NAME): $(OBJ)
 		ar rcs $(NAME) $(OBJ)
@@ -27,8 +31,9 @@ fclean: clean
 
 re: fclean all
 
-gitadd: $(SRCS) $(INC)
+git: $(SRCS) $(INC)
 	git add $^
 	git add Makefile
+	git add test.c
 
 -include ${DEPENDS}

@@ -13,16 +13,19 @@
 			CONCAT(constructor, type)((void *)(char[sizeof(type)]){}, ##  __VA_ARGS__)
 
 // dealloc
-void	delete(void *obj);
-void	destructor(void *_self);
-int		equal(void *_self, void *_other);
-void	*clone(void *_self);
+void			delete(void *obj);
+void			destructor(void *_self);
+int				equal(void *_self, void *_other);
+void			*clone(void *_self);
+unsigned int	hash(void *_self);
 
 typedef struct Class
 {
-	void	(*destructor)(void *self);
-	int		(*equal)(void *self, void *other);
-	void	*(*clone)(void *self);
+	void			(*destructor)(void *self);
+	int				(*equal)(void *self, void *other);
+	void			*(*clone)(void *self);
+	unsigned int	(*hash)(void *self);
+	void			(*str)(void *self);
 }	Class;
 
 #endif

@@ -48,3 +48,14 @@ int		equal(void *_self, void *other)
 		return 0;
 	return 1;
 }
+
+unsigned int	hash(void *_self)
+{
+	Class	*class;
+
+	if (_self)
+		class = *(Class **)_self;
+	if (_self && class && class->hash)
+		return class->hash(_self);
+	return (unsigned int)_self;
+}

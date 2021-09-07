@@ -7,38 +7,27 @@
 #include <assert.h>
 #include "object.h"
 
+typedef int* int_ptr_t;
+typedef char* char_ptr_t;
+typedef double* double_ptr_t;
+typedef float* float_ptr_t;
+typedef void* void_ptr_t;
+
 // Type of vector
 #define Vector(type) CONCAT(Vector, type)
 #define Iterator(type) CONCAT(Iterator, type)
 
-/**
- * Обертки над встроенными функциями
- * m_insert(object, element, position);
- * m_size(object);
- * m_push_back(object, element);
- * m_push_front(object, element);
- * m_erase(object, element);
- * m_clear(object);
- * m_at(object, position);
- */
-
-/**
- * m_insert Вставка елемента в позицию в массиве
- */
+// container methods
 #define m_insert(obj, elem, pos) obj->vtable->insert(obj, elem, pos)
-/**
- * m_size Возвращает размер массива
- */
 #define m_size(obj) obj->vtable->size(obj)
-/**
- * Вставка елемента в конец массива
- */
 #define m_push_back(obj, elem) obj->vtable->push_back(obj, elem)
 #define m_push_front(obj, elem) obj->vtable->push_front(obj, elem)
 #define m_erase(obj, pos) obj->vtable->erase(obj, pos)
 #define m_clear(obj) obj->vtable->clear(obj)
 #define m_at(obj, pos) obj->vtable->at(obj, pos)
+#define m_load(obj, mem, size) obj->vtable->load(obj, mem, size)
 
+// iterator methods
 #define m_has_next(iterator) iterator->container->vtable->has_next(iterator)
 #define m_next(iterator) iterator->container->vtable->next(iterator)
 #define m_remove(iterator) iterator->container->vtable->remove(iterator)
@@ -56,20 +45,19 @@
 #define T float
 #include "vector.h"
 
-typedef int* int_ptr_t;
 #define T int_ptr_t
 #include "vector.h"
 
-typedef char* char_ptr_t;
 #define T char_ptr_t
 #include "vector.h"
 
-typedef double* double_ptr_t;
 #define T double_ptr_t
 #include "vector.h"
 
-typedef float* float_ptr_t;
 #define T float_ptr_t
+#include "vector.h"
+
+#define T void_ptr_t
 #include "vector.h"
 
 #endif
@@ -128,33 +116,42 @@ CONCAT(Vector, T)	*CONCAT(constructor_Vector, T)(void *v, ...);
 
 // constructor iterator declare
 void	*CONCAT(constructor_Iterator, T)(void *this, void *vec);
+
+
 /**************************************************************************/
 /**************************************************************************/
 /***************************************************************************/
 
 #ifdef template
+
 /**
  * Шаблоны прототипов встроенных функций
  */
 
-static void		CONCAT(destructor, T)(void *obj);
-static bool		CONCAT(erase, T)(void *this, int position);
-static int		CONCAT(size, T)(void *this);
-static bool		CONCAT(push_front, T)(void *this, T);
-static bool		CONCAT(push_back, T)(void *this, T);
-static bool		CONCAT(insert, T)(void *this, T, int position);
-static T		CONCAT(at, T)(void *this, int elem);
-static void		CONCAT(clear, T)(void *this);
-static bool		CONCAT(load, T)(void *this, void *mem, size_t n);
-static bool		CONCAT(add_mem, T)(void *this, void *mem, int size);
-static bool		CONCAT(has_next, T)(CONCAT(Iterator, T) *t);
-static T		CONCAT(next, T)(CONCAT(Iterator, T) *t);
-void			CONCAT(addIterator, T)(CONCAT(Iterator, T) *t, T elem);
-void			CONCAT(removeIterator, T)(CONCAT(Iterator, T) *t);
+static void			CONCAT(destructor, T)(void *obj);
+static void			*CONCAT(clone, T)(void *_self);
+static int			CONCAT(equal, T)(void *_self, void *_other);
+static unsigned int	CONCAT(vector_hash, T)(void *_self);
+static bool			CONCAT(erase, T)(void *this, int position);
+static int			CONCAT(size, T)(void *this);
+static bool			CONCAT(push_front, T)(void *this, T);
+static bool			CONCAT(push_back, T)(void *this, T);
+static bool			CONCAT(insert, T)(void *this, T, int position);
+static T			CONCAT(at, T)(void *this, int elem);
+static void			CONCAT(clear, T)(void *this);
+static bool			CONCAT(load, T)(void *this, void *mem, size_t n);
+static bool			CONCAT(add_mem, T)(void *this, void *mem, int size);
+static bool			CONCAT(has_next, T)(CONCAT(Iterator, T) *t);
+static T			CONCAT(next, T)(CONCAT(Iterator, T) *t);
+void				CONCAT(addIterator, T)(CONCAT(Iterator, T) *t, T elem);
+void				CONCAT(removeIterator, T)(CONCAT(Iterator, T) *t);
 
 static Class	CONCAT(g_class, T) =
 {
-	.destructor = CONCAT(destructor, T)
+	.destructor = CONCAT(destructor, T),
+	.clone = CONCAT(clone, T),
+	.equal = CONCAT(equal, T),
+	.hash = CONCAT(vector_hash, T)
 };
 
 static CONCAT(t_vtable, T)	CONCAT(g_vtable, T) =
@@ -203,9 +200,56 @@ CONCAT(Vector, T)	*CONCAT(constructor_Vector, T)(void *v, ...)
 	return (vec);
 }
 
-/**
- * 
- */
+static void	CONCAT(destructor, T)(void *obj)
+{
+	CONCAT(Vector, T) *t;
+	
+	t = obj;
+	free(t->mem);
+}
+
+void *CONCAT(clone, T)(void *_self)
+{
+	Vector(T)	*self = _self;
+	Vector(T)	*clone = new(Vector(T));
+	T			*mem = calloc(self->size + 1, sizeof(T));
+	
+	if (!clone || mem) {
+		delete(clone);
+		free(mem);
+		return 0;
+	}
+	memcpy(mem, self->mem, self->size * sizeof(T));
+	free(clone->mem);
+	clone->mem = mem;
+	clone->size = self->size;
+	clone->capacity = self->size + 1;
+	return clone;
+}
+
+int	CONCAT(equal, T)(void *_self, void *_other)
+{
+	Vector(T) *self = _self;
+	Vector(T) *other = _other;
+
+	if ((!self && other) || (self && !other))
+		return 0;
+	unsigned int hash_self = CONCAT(vector_hash, T)(self);
+	unsigned int hash_other = CONCAT(vector_hash, T)(other);
+	return hash_self == hash_other;
+}
+unsigned int CONCAT(vector_hash, T)(void *_self)
+{
+	Vector(T)		*self = _self;
+	unsigned int	hash = 0;
+	unsigned char	*mem = (unsigned char *)self->mem;
+
+	for (int i = 0; i < (self->size * (int)sizeof(T)) && i < 1000; i++) {
+		hash = hash * 33 + mem[i];
+	}
+	return hash;
+}
+
 static bool	CONCAT(add_mem, T)(void *this, void *mem, int size)
 {
 	void					*nmem;
@@ -230,6 +274,7 @@ static T	CONCAT(at, T)(void *this, int elem)
 
 	this_ = this;
 	assert(elem < this_->size);
+	assert(elem >= 0);
 	return (this_->mem[elem]);
 }
 
@@ -324,13 +369,6 @@ static int	CONCAT(size, T)(void *vec)
 	return (vector->size);
 }
 
-static void	CONCAT(destructor, T)(void *obj)
-{
-	CONCAT(Vector, T) *t;
-	
-	t = obj;
-	free(t->mem);
-}
 
 /*****************************************************************/
 /*****************************************************************/

@@ -9,19 +9,19 @@ typedef Vector(char)* VectorPtr; // чтобы убрать * из типа
 #define T VectorPtr // во всех файлах где используется
 #include "vector.h" // тоже во всех
 
-typedef struct s_int
+typedef struct user_class
 {
 	Class	*class; // первым элементом класс
 	int		*content;
-} t_int; // user "class"
+} user_class; // user "class"
 
 int	user_equal(void *_self, void *_other); // сигнатура функции сравнения
 void *user_clone(void *_self); // сигнатура копирующего конструктора
 void user_destructor(void *_self); // сигнатура деструктора: void name(void *self)
 
-void *constructor_t_int(void *_self) // сигнатура конструктора:  void *constructor_ + имя структуры(void *self, [other arg])
+void *constructor_user_class(void *_self) // сигнатура конструктора:  void *constructor_ + имя структуры(void *self, [other arg])
 {									// может иметь разное количество параметров, первым принимает указатель на структуру
-	t_int *self = _self;
+	user_class *self = _self;
 
 	static Class class_int_t =		// создаем экземляр предка
 	{
@@ -38,7 +38,7 @@ void *constructor_t_int(void *_self) // сигнатура конструкто�
 
 void user_destructor(void *_self) // сигнатура деструктора: void name(void *self)
 {
-	t_int *self = _self;
+	user_class *self = _self;
 	
 	free(self->content);
 	printf("User destructor call!\n");
@@ -46,8 +46,8 @@ void user_destructor(void *_self) // сигнатура деструктора: 
 
 void *user_clone(void *_self) // сигнатура копирующего конструктора
 {
-	t_int *self = _self;
-	t_int *clone = new(t_int);
+	user_class *self = _self;
+	user_class *clone = new(user_class);
 	
 	if (!clone)
 		return 0;
@@ -57,27 +57,27 @@ void *user_clone(void *_self) // сигнатура копирующего ко�
 
 int	user_equal(void *_self, void *_other) // сигнатура функции сравнения
 {
-	t_int *self = _self;
-	t_int *other = _other;
+	user_class *self = _self;
+	user_class *other = _other;
 	// может быть любая проверка
 	return self == other;
 }
 
 int main()
 {
-	Vector(int) *vec = new(Vector(int)); // новый массив интов в куче
+	Vector(int) *vec_int = new(Vector(int)); // новый массив интов в куче
 	Vector(char) *vec_char = new(Vector(char)); // новый массив чаров в куче
     Vector(VectorPtr) *vec_char_ptr = new(Vector(VectorPtr)); // новый массив векторов в куче
 
 	// добавляем числа
-    m_push_back(vec, 10);
-    m_push_back(vec, 4);
-    m_push_back(vec, 56);
+    m_push_back(vec_int, 10);
+    m_push_back(vec_int, 4);
+    m_push_back(vec_int, 56);
 
 	// печатаем
-    printf("vec pos 0 %d\n", m_at(vec, 0));
-    printf("vec pos 1 %d\n", m_at(vec, 1));
-    printf("vec pos 2 %d\n", m_at(vec, 2));
+    printf("vec_int pos 0 %d\n", m_at(vec_int, 0));
+    printf("vec_int pos 1 %d\n", m_at(vec_int, 1));
+    printf("vec_int pos 2 %d\n", m_at(vec_int, 2));
 
 	// добавляем символы
     m_push_back(vec_char, '#');
@@ -96,32 +96,36 @@ int main()
     printf("vec_char_ptr pos 0: vector_char pos 0 %c\n", m_at(m_at(vec_char_ptr, 0), 0));
     printf("vec_char_ptr pos 1: vector_char pos 0 %c\n", m_at(m_at(vec_char_ptr, 1), 0));
 
-    
+	printf("vec_int hash: %u\n", hash(vec_int));
+	printf("vec_char hash: %u\n", hash(vec_char));
+	printf("vec_char_ptr hash: %u\n", hash(vec_char_ptr));
+   
+	// сравниваем вектора: если равны 1, если нет 0
+	printf("equal vec_int, vec_char: %s\n", equal(vec_int, vec_char) ? "true" : "false");
+	printf("equal vec_int, vec_int: %s\n", equal(vec_int, vec_int) ? "true" : "false");
+
+
 	// новый итератор по вектору интов на стеке, delete не нужен
-	Iterator(int) *i = $(Iterator(int), vec);
+	Iterator(char) *i = $(Iterator(char), vec_char);
 	while (m_has_next(i))
 	{
-		int p = m_next(i);
-		printf("vec  %d\n", p);
+		char p = m_next(i);
+
+		printf("vec_char ch: %c\n", p);
 	}
     
 	// call destructor and free
-	delete(vec);
+	delete(vec_int);
     delete(vec_char);
     delete(vec_char_ptr);
 	
 
 	// новые экземляры пользовательского класса
-	t_int *ptr = new(t_int);
-	t_int *ptr1 = $(t_int); // на стеке
-	t_int *ptr2 = $(t_int); // на стеке
+	user_class *ptr = new(user_class);
+	user_class *ptr1 = $(user_class); // на стеке
+	user_class *ptr2 = $(user_class); // на стеке
 	
-	t_int *ptr3 = clone(ptr); // всегда в куче
-
-	if (equal(ptr, ptr3))
-		printf("ptr == ptr3\n");
-	else
-		printf("ptr != ptr3\n");
+	user_class *ptr3 = clone(ptr); // всегда в куче
 
 	// удаляем
 	delete(ptr);
