@@ -2,8 +2,8 @@ VPATH = srcs:include
 
 CC = clang
 FLAGS = -Wall -Wextra -Werror -MMD # -fsanitize=address
-SRCS = vector.c object.c
-INC = vector.h object.h
+SRCS = vector.c object.c exception.c
+INC = vector.h object.h exception.h
 INCLUDE = ./include
 OBJ = $(SRCS:.c=.o)
 DEPENDS = ${SRCS:.c=.d}
@@ -16,6 +16,11 @@ all: $(SRCS) $(NAME)
 test: all
 	$(CC) test.c -I$(INCLUDE) $(NAME)
 	./a.out
+
+examples: all
+	$(CC) main_object_example.c -o object_example -I$(INCLUDE) $(NAME)
+	$(CC) main_vector_example.c -o vector_example -I$(INCLUDE) $(NAME)
+	$(CC) main_exception_example.c -o exception_example -I$(INCLUDE) $(NAME)
 
 $(NAME): $(OBJ)
 		ar rcs $(NAME) $(OBJ)
@@ -33,7 +38,6 @@ re: fclean all
 
 git: $(SRCS) $(INC)
 	git add $^
-	git add Makefile
-	git add test.c
+	git add Makefile main_object_example.c main_vector_example.c main_exception_example.c README.md
 
 -include ${DEPENDS}
