@@ -21,6 +21,9 @@ examples: all
 	$(CC) main_object_example.c -o object_example -I$(INCLUDE) $(NAME)
 	$(CC) main_vector_example.c -o vector_example -I$(INCLUDE) $(NAME)
 	$(CC) main_exception_example.c -o exception_example -I$(INCLUDE) $(NAME)
+	./object_example
+	./vector_example
+	./exception_example
 
 $(NAME): $(OBJ)
 		ar rcs $(NAME) $(OBJ)

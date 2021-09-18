@@ -8,32 +8,34 @@
 
 typedef struct user_class
 {
-    Class    *class; // первым элементом класс
-    int        *content;
-} user_class; // user "class"
+    Class    *class;       // первым элементом класс
+    int      *content;
+} user_class;              // user "class"
 
-int    user_equal(void *_self, void *_other); // сигнатура функции сравнения
-void *user_clone(void *_self); // сигнатура копирующего конструктора
-void user_destructor(void *_self); // сигнатура деструктора: void name(void *self)
+int     user_equal(void *_self, void *_other);     // сигнатура функции сравнения
+void    *user_clone(void *_self);                    // сигнатура копирующего конструктора
+void    user_destructor(void *_self);        // сигнатура деструктора: void name(void *self)
 
-void *constructor_user_class(void *_self) // сигнатура конструктора:  void *constructor_ + имя структуры(void *self, [other arg])
-{                                    // может иметь разное количество параметров, первым принимает указатель на структуру
+// сигнатура конструктора:  void *constructor_ + имя структуры(void *self, [other arg])
+// может иметь разное количество параметров, первым принимает указатель на структуру
+void *constructor_user_class(void *_self)
+{
     user_class *self = _self;
 
-    static Class class_int_t =        // создаем экземляр предка
+    static Class class_int_t =            // создаем экземляр предка
     {
         .destructor = user_destructor,
         .equal = user_equal,
         .clone = user_clone
     };
-    self->class = &class_int_t;    // записываем указатель на предка
+    self->class = &class_int_t;           // записываем указатель на предка
     
     self->content = calloc(5, sizeof(int));
     printf("User constructor call!\n");
     return self;
 }
 
-void user_destructor(void *_self) // сигнатура деструктора: void name(void *self)
+void user_destructor(void *_self)       // сигнатура деструктора: void name(void *self)
 {
     user_class *self = _self;
     
@@ -41,7 +43,7 @@ void user_destructor(void *_self) // сигнатура деструктора: 
     printf("User destructor call!\n");
 }
 
-void *user_clone(void *_self) // сигнатура копирующего конструктора
+void *user_clone(void *_self)           // сигнатура копирующего конструктора
 {
     user_class *self = _self;
     user_class *clone = new(user_class);
@@ -52,7 +54,7 @@ void *user_clone(void *_self) // сигнатура копирующего ко�
     return clone;
 }
 
-int    user_equal(void *_self, void *_other) // сигнатура функции сравнения
+int    user_equal(void *_self, void *_other)   // сигнатура функции сравнения
 {
     user_class *self = _self;
     user_class *other = _other;
@@ -64,11 +66,11 @@ int main()
 {
     // новые экземляры пользовательского класса
     user_class *ptr = new(user_class);
-    user_class *ptr1 = $(user_class); // на стеке
-    user_class *ptr2 = $(user_class); // на стеке
+    user_class *ptr1 = $(user_class);        // на стеке
+    user_class *ptr2 = $(user_class);        // на стеке
     
     // копия
-    user_class *ptr3 = clone(ptr); // всегда в куче
+    user_class *ptr3 = clone(ptr);           // всегда в куче
 
     printf("equal: %s\n", equal(ptr, ptr) ? "true" : "false");
     printf("equal: %s\n", equal(ptr, ptr3) ? "true" : "false");
@@ -114,7 +116,18 @@ int main(int ac, char **av)
 {
     try
     {
-        div(0); // throw zero division
+        try
+		{
+			int *p = 0;
+			int a = *p;     // segmentation fault
+		}
+		catchAll
+		{
+			printf("Segmentation fault handler\n");
+		}
+		end
+        
+        div(0);       // throw zero division
 
         // no print
         printf("no print\n");
@@ -140,7 +153,7 @@ int main(int ac, char **av)
 #include "object.h"
 #include "vector.h"
 
-typedef Vector(char)* VectorPtr; // чтобы убрать * из типа
+typedef Vector(char)* VectorPtr;    // чтобы убрать * из типа
 
 // темплейтинг
 #define template // генерация методов, ставим в одном файле
@@ -149,8 +162,8 @@ typedef Vector(char)* VectorPtr; // чтобы убрать * из типа
 
 int main()
 {
-    Vector(int) *vec_int = new(Vector(int)); // новый массив интов в куче
-    Vector(char) *vec_char = new(Vector(char)); // новый массив чаров в куче
+    Vector(int) *vec_int = new(Vector(int));                  // новый массив интов в куче
+    Vector(char) *vec_char = new(Vector(char));               // новый массив чаров в куче
     Vector(VectorPtr) *vec_char_ptr = new(Vector(VectorPtr)); // новый массив векторов в куче
 
     // добавляем числа
