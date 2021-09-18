@@ -11,7 +11,7 @@ void div(int n)
 
 int main(int ac, char **av)
 {
-	throw(ZERO_DIVISION_EXCEPTION);
+	//throw(ZERO_DIVISION_EXCEPTION); // assertion without try
 	try
 	{
 		try
