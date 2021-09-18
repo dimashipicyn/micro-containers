@@ -2,6 +2,7 @@
 # define EXCEPTION_H
 # include <setjmp.h>
 # include <signal.h>
+# include <assert.h>
 
 // текст в си строку
 # define str(s) #s
@@ -35,7 +36,8 @@ extern char			*exception_name[NUM_EXCEPTIONS];
 #define catchAll else if (private_exc != 0)
 
 // сгенерировать исключение
-#define throw(except_) longjmp(private_env[ctx_counter], except_);
+#define throw(except_)\
+			if (!ctx_counter) assert(!#except_); longjmp(private_env[ctx_counter], except_);
 
 #define end ctx_counter--;
 
@@ -46,6 +48,10 @@ extern char			*exception_name[NUM_EXCEPTIONS];
 #define main(...) usr_main(__VA_ARGS__);\
 					int main(int ac, char **av) {\
 						signal(SIGSEGV, signalHandler);\
+						for(int i = 0; i < MAX_CONTEXT; i++) {\
+							for (int j = 0; j < sizeof(jmp_buf); j++)\
+								private_env[i][j] = 0;\
+						}\
 						return usr_main(ac, av);\
 					}\
 					int usr_main(__VA_ARGS__)

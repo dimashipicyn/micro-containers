@@ -11,6 +11,7 @@ void div(int n)
 
 int main(int ac, char **av)
 {
+	throw(ZERO_DIVISION_EXCEPTION);
 	try
 	{
 		try

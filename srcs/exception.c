@@ -3,7 +3,7 @@
 int			ctx_counter = 0;
 
 // буфер для setjmp, longjmp
-jmp_buf private_env[MAX_CONTEXT];
+jmp_buf private_env[MAX_CONTEXT] = {0};
 
 // текущее исключение
 t_exception private_exc = 0;
