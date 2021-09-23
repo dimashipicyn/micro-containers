@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <assert.h>
 #include "object.h"
 
@@ -26,10 +27,13 @@ typedef void* void_ptr_t;
 #define m_clear(obj) obj->vtable->clear(obj)
 #define m_at(obj, pos) obj->vtable->at(obj, pos)
 #define m_load(obj, mem, size) obj->vtable->load(obj, mem, size)
+#define m_add_mem(obj, mem, size) obj->vtable->add_mem(obj, mem, size)
 
 // iterator methods
 #define m_has_next(iterator) iterator->container->vtable->has_next(iterator)
 #define m_next(iterator) iterator->container->vtable->next(iterator)
+#define m_prev(iterator) iterator->container->vtable->prev(iterator)
+#define m_get(iterator) iterator->container->vtable->get(iterator)
 #define m_remove(iterator) iterator->container->vtable->remove(iterator)
 #define m_add(iterator, elem) iterator->container->vtable->add(iterator, elem)
 
@@ -91,13 +95,15 @@ typedef struct CONCAT(s_vtable, T)
 	bool	(*add_mem)(void *, void *, int);
 	bool	(*has_next)(struct CONCAT(Iterator, T) *);
 	T		(*next)(struct CONCAT(Iterator, T) *);
+	void    (*prev)(struct CONCAT(Iterator, T) *);
+	T		(*get)(struct CONCAT(Iterator, T) *);
 	void	(*remove)(struct CONCAT(Iterator, T) *);
 	void	(*add)(struct CONCAT(Iterator, T) *, T);
 }				CONCAT(t_vtable, T);
 
 typedef struct CONCAT(Vector, T)
 {
-	Class					*class;
+	Class				*class;
 	CONCAT(t_vtable, T)	*vtable;
 	T			*mem;
 	int			size;
@@ -143,6 +149,8 @@ static bool			CONCAT(load, T)(void *this, void *mem, size_t n);
 static bool			CONCAT(add_mem, T)(void *this, void *mem, int size);
 static bool			CONCAT(has_next, T)(CONCAT(Iterator, T) *t);
 static T			CONCAT(next, T)(CONCAT(Iterator, T) *t);
+static void			CONCAT(prev, T)(CONCAT(Iterator, T) *t);
+static T	        CONCAT(get, T)(CONCAT(Iterator, T) *t);
 void				CONCAT(addIterator, T)(CONCAT(Iterator, T) *t, T elem);
 void				CONCAT(removeIterator, T)(CONCAT(Iterator, T) *t);
 
@@ -167,6 +175,8 @@ static CONCAT(t_vtable, T)	CONCAT(g_vtable, T) =
 	.add_mem = CONCAT(add_mem, T),
 	.has_next = CONCAT(has_next, T),
 	.next = CONCAT(next, T),
+	.prev = CONCAT(prev, T),
+	.get = CONCAT(get, T),
 	.remove = CONCAT(removeIterator, T),
 	.add = CONCAT(addIterator, T)
 };
@@ -214,7 +224,7 @@ void *CONCAT(clone, T)(void *_self)
 	Vector(T)	*clone = new(Vector(T));
 	T			*mem = calloc(self->size + 1, sizeof(T));
 	
-	if (!clone || mem) {
+	if (!clone || !mem) {
 		delete(clone);
 		free(mem);
 		return 0;
@@ -273,6 +283,7 @@ static T	CONCAT(at, T)(void *this, int elem)
 	CONCAT(Vector, T) *this_;
 
 	this_ = this;
+	printf("%d\n", elem);
 	assert(elem < this_->size);
 	assert(elem >= 0);
 	return (this_->mem[elem]);
@@ -287,44 +298,46 @@ static void	CONCAT(clear, T)(void *vec)
 	vector->size = 0;
 }
 
-static bool	CONCAT(erase, T)(void *this, int position)
+static bool	CONCAT(erase, T)(void *_self, int position)
 {
-	CONCAT(Vector, T) *this_;
+	CONCAT(Vector, T) *self;
 
-	this_ = this;
-	if (position < this_->size)
+	self = _self;
+	if (position < self->size && self->size > 0)
 	{
-		if (position < this_->size - 1)
-			memmove(this_->mem + position,
-				this_->mem + (position + 1),
-				(this_->size - position - 1) * sizeof(T));
-		this_->size -= 1;
+		if (position < self->size - 1)
+			memmove(self->mem + position,
+				self->mem + (position + 1),
+				(self->size - position - 1) * sizeof(T));
+		self->size -= 1;
+		memset(self->mem + self->size, 0, sizeof(T));
 		return (true);
 	}
 	return (false);
 }
 
-static bool	CONCAT(insert, T)(void *this, T elem, int position)
+static bool	CONCAT(insert, T)(void *_self, T elem, int position)
 {
-	T						*tmp;
-	CONCAT(Vector, T)	*this_;
+	T					*tmp;
+	CONCAT(Vector, T)	*self;
 
-	this_ = this;
-	if (position > this_->size)
+	self = _self;
+	if (position > self->size)
 		return (false);
-	if (this_->capacity <= this_->size)
+	if (self->capacity <= self->size + 1)
 	{
-		tmp = realloc(this_->mem, this_->capacity * sizeof(T) * 2);
+		tmp = realloc(self->mem, self->capacity * sizeof(T) * 2);
+		memset(tmp + self->size, 0, sizeof(T) * (self->capacity * 2 - self->size));
 		if (!tmp)
 			return (false);
-		this_->mem = tmp;
-		this_->capacity = this_->capacity * 2;
+		self->mem = tmp;
+		self->capacity = self->capacity * 2;
 	}
-	memmove(this_->mem + position + 1,
-		this_->mem + position,
-		(this_->size - position) * sizeof(T));
-	this_->mem[position] = elem;
-	this_->size += 1;
+	memmove(self->mem + position + 1,
+		self->mem + position,
+		(self->size - position) * sizeof(T));
+	self->mem[position] = elem;
+	self->size += 1;
 	return (true);
 }
 
@@ -382,7 +395,7 @@ static int	CONCAT(size, T)(void *vec)
  
 static bool	CONCAT(has_next, T)(CONCAT(Iterator, T) *t)
 {
-	if (t->iter < t->container->size - 1)
+	if (t->iter < t->container->size)
 		return (true);
 	return (false);
 }
@@ -393,8 +406,21 @@ static bool	CONCAT(has_next, T)(CONCAT(Iterator, T) *t)
 
 static T	CONCAT(next, T)(CONCAT(Iterator, T) *t)
 {
-	t->iter += 1;
-	return (t->container->vtable->at(t->container, t->iter));
+    T ret = t->container->vtable->at(t->container, t->iter);
+    t->iter += 1;
+	return (ret);
+}
+
+static void	CONCAT(prev, T)(CONCAT(Iterator, T) *t)
+{
+    t->iter -= 1;
+    //T ret = t->container->vtable->at(t->container, t->iter);
+    //return (ret);
+}
+
+static T	CONCAT(get, T)(CONCAT(Iterator, T) *t)
+{
+    return (t->container->vtable->at(t->container, t->iter));
 }
 
 void		CONCAT(removeIterator, T)(CONCAT(Iterator, T) *t)
@@ -422,7 +448,7 @@ void	*CONCAT(constructor_Iterator, T)(void *this, void *vec)
 	*this_ = (CONCAT(Iterator, T)) {
 		.class = 0,
 		.container = vec,
-		.iter = -1
+		.iter = 0
 	};
 	return (this);
 }
