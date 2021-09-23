@@ -196,7 +196,7 @@ CONCAT(Vector, T)	*CONCAT(constructor_Vector, T)(void *_self, ...)
 	T				    *mem;
 
 	self = _self;
-	mem = calloc(1, sizeof(T));
+	mem = calloc(3, sizeof(T));
 	if (!mem || !self)
 	{
 		free(self);
@@ -204,7 +204,7 @@ CONCAT(Vector, T)	*CONCAT(constructor_Vector, T)(void *_self, ...)
 		return (0);
 	}
 	self->mem = mem;
-	self->capacity = 1;
+	self->capacity = 3;
 	self->class = &CONCAT(g_class, T);
 	self->vtable = &CONCAT(g_vtable, T);
 	return (self);
@@ -350,10 +350,10 @@ static bool	CONCAT(load, T)(void *_self, void *mem, size_t n)
 	if (!m)
 		return (false);
 	memcpy(m, mem, n * sizeof(T));
-	free(self->mem);
+	//free(self->mem);
 	self->mem = m;
 	self->size = n;
-	self->capacity = n;
+	self->capacity = n + 1;
 	return (true);
 }
 
